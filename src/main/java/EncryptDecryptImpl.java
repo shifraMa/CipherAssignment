@@ -2,6 +2,9 @@ package main.java;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class EncryptDecryptImpl implements EncryptDecrypt {
 
@@ -29,16 +32,18 @@ public class EncryptDecryptImpl implements EncryptDecrypt {
     public String decryptWithKeyLength(List<Integer> encryptedMessage, int keyLength) {
         StringBuilder key = new StringBuilder();
         List<List<Integer>> keyBlocks = splitToKeyBlocks(encryptedMessage, keyLength);
-        for (List<Integer> keyBlock : keyBlocks) {
-            key.append(xorDecodeBytes(keyBlock));
-        }
+        key.append(keyBlocks
+                .stream()
+                .map(this::xorDecodeBytes)
+                .collect(Collectors.joining("")
+                ));
         return decrypt(encryptedMessage, key.toString());
     }
 
     private String xorDecodeBytes(List<Integer> partialInputBlock) {
         int score, greatestScore = 0, key = 0;
         for (int n = 0; n < 256; n++) {
-            String decryptedBlock = decryptSingleKey(partialInputBlock.stream().mapToInt(i -> i).toArray(), (char) n);
+            String decryptedBlock = decryptSingleKey(partialInputBlock, (char) n);
             score = assignScore(decryptedBlock);
             if (score > greatestScore) {
                 greatestScore = score;
@@ -48,40 +53,14 @@ public class EncryptDecryptImpl implements EncryptDecrypt {
         return Character.toString((char) key);
     }
 
-    private String decryptSingleKey(int[] input, char key) {
-        StringBuilder decrypted = new StringBuilder();
-        for (int j : input) {
-            decrypted.append((char) ((j - 48) ^ (int) key));
-        }
-        return decrypted.toString();
+    private String decryptSingleKey(List<Integer> input, char key) {
+        return input.stream()
+                .map(in -> (char) ((in - 48) ^ (int) key))
+                .map(String::valueOf)
+                .collect(Collectors.joining());
     }
 
 
     private List<List<Integer>> splitToKeyBlocks(List<Integer> encryptedInput, int keySize) {
         List<List<Integer>> keyBlocks = new ArrayList<>();
-        int ind = 0, block;
-
-        for (int i = 0; i < keySize; i++) {
-            keyBlocks.add(new ArrayList<>());
-        }
-
-        while (ind != encryptedInput.size()) {
-            block = ind % keySize;
-            keyBlocks.get(block).add(encryptedInput.get(ind));
-            ind++;
-        }
-
-        return keyBlocks;
-    }
-
-    private int assignScore(String keyBlock) {
-        List<Character> freq = List.of(' ', 'e', 't', 'a', 'o', 'i', 'n', 's', 'h', 'r', 'd', 'l', 'u');
-        int score = 0;
-        for (int i = 0; i < keyBlock.length(); i++) {
-            if (freq.contains(Character.toLowerCase(keyBlock.charAt(i)))) {
-                score += 1;
-            }
-        }
-        return score;
-    }
-}
+        AtomicInteger block = new AtomicInteger();
