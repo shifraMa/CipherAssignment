@@ -64,3 +64,25 @@ public class EncryptDecryptImpl implements EncryptDecrypt {
     private List<List<Integer>> splitToKeyBlocks(List<Integer> encryptedInput, int keySize) {
         List<List<Integer>> keyBlocks = new ArrayList<>();
         AtomicInteger block = new AtomicInteger();
+
+        IntStream.range(0, keySize)
+                .forEach(i -> keyBlocks.add(new ArrayList<>()));
+        IntStream.range(0, encryptedInput.size())
+                .forEach(i -> {
+                    block.set(i % keySize);
+                    keyBlocks.get(block.get()).add(encryptedInput.get(i));
+                });
+        return keyBlocks;
+    }
+
+    private int assignScore(String keyBlock) {
+        List<Character> freq = List.of(' ', 'e', 't', 'a', 'o', 'i', 'n', 's', 'h', 'r', 'd', 'l', 'u');
+        int score = 0;
+        for (int i = 0; i < keyBlock.length(); i++) {
+            if (freq.contains(Character.toLowerCase(keyBlock.charAt(i)))) {
+                score += 1;
+            }
+        }
+        return score;
+    }
+}
