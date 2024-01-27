@@ -10,22 +10,22 @@ public class EncryptDecryptImpl implements EncryptDecrypt {
 
     @Override
     public List<Integer> encrypt(String message, String key) {
-
-        List<Integer> encrypted = new ArrayList<>(message.length());
-        for (int i = 0; i < message.length(); i++) {
-            int o = ((int) message.charAt(i) ^ (int) key.charAt(i % (key.length() - 1))) + '0';
-            encrypted.add(o);
-        }
-        return encrypted;
+        return IntStream.range(0, message.length())
+                .map(i -> xor(message.charAt(i), key.charAt(i % (key.length() - 1))) + '0')
+                .boxed()
+                .toList();
     }
 
     @Override
     public String decrypt(List<Integer> encryptedMessage, String key) {
-        StringBuilder decrypted = new StringBuilder();
-        for (int i = 0; i < encryptedMessage.size(); i++) {
-            decrypted.append((char) ((encryptedMessage.get(i) - 48) ^ (int) key.charAt(i % (key.length() - 1))));
-        }
-        return decrypted.toString();
+        return IntStream.range(0, encryptedMessage.size())
+                .map(i -> (char) (xor((encryptedMessage.get(i) - 48), key.charAt(i % (key.length() - 1)))))
+                .mapToObj(ch -> Character.toString((char) ch))
+                .collect(Collectors.joining(""));
+    }
+
+    private static int xor(int messageByte, int keyByte) {
+        return messageByte ^ keyByte;
     }
 
     @Override
@@ -77,12 +77,13 @@ public class EncryptDecryptImpl implements EncryptDecrypt {
 
     private int assignScore(String keyBlock) {
         List<Character> freq = List.of(' ', 'e', 't', 'a', 'o', 'i', 'n', 's', 'h', 'r', 'd', 'l', 'u');
-        int score = 0;
-        for (int i = 0; i < keyBlock.length(); i++) {
-            if (freq.contains(Character.toLowerCase(keyBlock.charAt(i)))) {
-                score += 1;
-            }
-        }
-        return score;
+        AtomicInteger score = new AtomicInteger();
+        keyBlock.chars()
+                .forEach(c -> {
+                    if (freq.contains(Character.toLowerCase((char) c))) {
+                        score.addAndGet(1);
+                    }
+                });
+        return score.get();
     }
 }
